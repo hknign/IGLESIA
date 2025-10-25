@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IEPCS - Mapa</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: "Poppins", sans-serif;
+    }
+
+    #map-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    #map {
+      flex: 1;
+      min-height: 600px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    #sidebar {
+      width: 320px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      height: 600px;
+      overflow-y: auto;
+    }
+
+    #sidebar h4 {
+      font-weight: bold;
+      color: #0d6efd;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .iglesia-item {
+      border: 1px solid #dee2e6;
+      border-radius: 10px;
+      padding: 10px 15px;
+      margin-bottom: 10px;
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+    }
+
+    .iglesia-item:hover {
+      background-color: #f1f5ff;
+      border-color: #0d6efd;
+      transform: scale(1.02);
+    }
+
+    .panel-info {
+      position: absolute;
+      bottom: 30px;
+      left: 30px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      display: none;
+      width: 300px;
+      z-index: 1000;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .panel-info h5 {
+      font-weight: bold;
+      color: #0d6efd;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 992px) {
+      #map-container {
+        flex-direction: column-reverse;
+      }
+      #sidebar {
+        width: 100%;
+        height: auto;
+        max-height: 350px;
+      }
+      #map {
+        height: 500px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html">Iglesia Evangélica Pentecostal de la Comunión de los Santos</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+          <li class="nav-item"><a class="nav-link" href="historia.html">Historia</a></li>
+          <li class="nav-item"><a class="nav-link active" href="#">Mapa</a></li>
+          <li class="nav-item"><a class="nav-link" href="recursos.html">Recursos</a></li>
+          <li class="nav-item"><a class="nav-link" href="eventos.html">Eventos</a></li>
+          <li class="nav-item"><a class="nav-link" href="contacto.html">Contacto</a></li>
+          <li class="nav-item"><a class="nav-link btn btn-primary text-light px-3 ms-2" href="donaciones.html">Donar</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAPA + SIDEBAR -->
+  <section class="container my-5">
+    <h2 class="text-center mb-4 fw-bold text-primary">Mapa de Iglesias Nacionales</h2>
+    <div id="map-container">
+      <!-- Mapa -->
+      <div id="map"></div>
+
+      <!-- Sidebar de Iglesias -->
+      <div id="sidebar">
+        <h4>Lista de Iglesias</h4>
+        <div id="listaIglesias"></div>
+      </div>
+    </div>
+
+    <!-- Panel dinámico -->
+    <div class="panel-info shadow" id="infoPanel">
+      <h5 id="iglesiaNombre"></h5>
+      <p id="iglesiaCiudad" class="text-muted small"></p>
+      <div class="d-grid gap-2">
+        <a id="btnMaps" href="#" target="_blank" class="btn btn-outline-primary">📍 Ver en Google Maps</a>
+        <a id="btnHistoria" href="#" class="btn btn-primary">📖 Ver Historia</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="bg-dark text-light text-center p-4 mt-5 shadow-lg">
+    <p>&copy; 2025 IEPCS | Todos los derechos reservados</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Inicializar mapa
+    var map = L.map('map').setView([-33.45, -70.66], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // Iglesias
+    const iglesias = [
+      { id: 1, nombre: "Iglesia Evangélica Pentecostal de la Comunión de los Santos", ciudad: "Valdivia", coords:[-39.872953, -73.158487] },
+      { id: 2, nombre: "Iglesia Evangélica Pentecostal de la Comunión de los Santos Osorno", ciudad: "Osorno", coords: [-40.57395, -73.13348] },
+      { id: 3, nombre: "Iglesia Evangelica Pentecostal Comunion De Los Santos", ciudad: "Los muermos", coords: [-41.389695, -73.467746] },
+      { id: 4, nombre: "Iglesia Evangélica Pentecostal de la Comunión de los Santos Bosquemar", ciudad:"Puerto Montt", coords:[-41.484955, -73.013777] }
+    ];
+
+    iglesias.forEach(iglesia => {
+      L.marker(iglesia.coords)
+        .addTo(map)
+        .bindPopup(`<strong>${iglesia.nombre}</strong><br>${iglesia.ciudad}`);
+    });
+
+
+    // Panel
+    const panel = document.getElementById("infoPanel");
+    const iglesiaNombre = document.getElementById("iglesiaNombre");
+    const iglesiaCiudad = document.getElementById("iglesiaCiudad");
+    const btnMaps = document.getElementById("btnMaps");
+    const btnHistoria = document.getElementById("btnHistoria");
+
+    // Crear marcadores
+    const markers = {};
+    iglesias.forEach(iglesia => {
+      const marker = L.marker(iglesia.coords).addTo(map).on("click", () => mostrarInfo(iglesia));
+      markers[iglesia.id] = marker;
+    });
+
+    // Llenar sidebar
+    const lista = document.getElementById("listaIglesias");
+    iglesias.forEach(iglesia => {
+      const div = document.createElement("div");
+      div.className = "iglesia-item";
+      div.innerHTML = `<h6 class="mb-0">${iglesia.nombre}</h6><small class="text-muted">${iglesia.ciudad}</small>`;
+      div.addEventListener("click", () => {
+        map.setView(iglesia.coords, 10);
+        mostrarInfo(iglesia);
+      });
+      lista.appendChild(div);
+    });
+
+    // Función mostrar panel
+    function mostrarInfo(iglesia) {
+      iglesiaNombre.textContent = iglesia.nombre;
+      iglesiaCiudad.textContent = iglesia.ciudad;
+      btnMaps.href = `https://www.google.com/maps?q=${iglesia.coords[0]},${iglesia.coords[1]}`;
+      btnMaps.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(iglesia.nombre + ' ' + iglesia.ciudad)}`;
+      panel.style.display = "block";
+    }
+
+    // Ocultar panel si se hace clic fuera
+    map.on("click", () => { panel.style.display = "none"; });
+  </script>
+</body>
+</html>
